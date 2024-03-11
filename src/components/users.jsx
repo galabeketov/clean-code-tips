@@ -1,16 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { fetchUser } from "../api/userApi";
 import styled from "styled-components";
+import LazyLoader from "./lazy-loader";
+import { useApi } from "../api/hooks/useApi";
 
 const useFetchUsers = () => {
-  const [users, setUsers] = useState([]);
-  const initFetchUsers = async () => {
-    const response = await fetchUser();
-    setUsers(response.data);
-  };
+  const {
+    data: users,
+    exec: initFetchUsers,
+    status: fetchUsersStatus,
+    isIdle: isFetchUsersStatusIdle,
+    isPending: isFetchUsersStatusPending,
+    isError: isFetchUsersStatusError,
+    isSuccess: isFetchUsersStatusSuccess,
+  } = useApi(() => fetchUser().then((response) => response.data));
   return {
     users,
+    fetchUsersStatus,
     initFetchUsers,
+    isFetchUsersStatusIdle,
+    isFetchUsersStatusPending,
+    isFetchUsersStatusError,
+    isFetchUsersStatusSuccess,
   };
 };
 
@@ -47,7 +58,13 @@ const FetchButton = styled.button`
 `;
 
 function Users() {
-  const { users, initFetchUsers } = useFetchUsers();
+  const {
+    users,
+    initFetchUsers,
+    isFetchUsersStatusIdle,
+    isFetchUsersStatusPending,
+    isFetchUsersStatusSuccess,
+  } = useFetchUsers();
 
   useEffect(() => {
     initFetchUsers();
@@ -55,10 +72,17 @@ function Users() {
 
   return (
     <Container>
-      <FetchButton onClick={initFetchUsers}>Fetch Users</FetchButton>
+      <FetchButton onClick={initFetchUsers}>
+        <LazyLoader
+          show={isFetchUsersStatusPending}
+          delay={500}
+          default="Fetch Users"
+        />
+      </FetchButton>
       <FlexContainer>
         <ContentContainer>
-          {users
+          {isFetchUsersStatusIdle ? <p>Welcome</p> : null}
+          {isFetchUsersStatusSuccess
             ? users.map((user, index) => (
                 <React.Fragment key={index}>
                   <UserName>{user.name}</UserName>
